@@ -21,3 +21,26 @@ This paper presents the model and rendering algorithm of Potentially Visible Hid
 umes for multi-fragment rendering for multi-view warping;
 * an effective depth peeling algorithm that realizes PVHV for
 on-the-fly fragment culling
+
+## Contact
+Open an issue for any inquiries.
+You may also have contact with [sungkil@skku.edu](mailto:sungkil@skku.edu)
+
+## Related Links
+
+## License
+
+## Citation
+If you find this code useful, please consider citing:
+
+```
+@ARTICLE{kim23:pvhv,
+  title={{Potentially Visible Hidden-Volume Rendering for Multi-View Warping}},
+  author={Janghun Kim and Sungkil Lee},
+  journal={{(Accepted to) ACM Trans. Graphics (Proc. SIGGRAPH)}},
+  volume={42},
+  number={4},
+  pages={1--11},
+  year={2023}
+}
+```
