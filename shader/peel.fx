@@ -4,8 +4,8 @@
 //*************************************
 
 uniform bool		b_edp_umbra;
-uniform int			model;
-uniform int			layer_index;
+uniform int		model;
+uniform int		layer_index;
 uniform uint		edp_sample_count;
 uniform float		umbra_scale;
 uniform float		K0;
