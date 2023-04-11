@@ -55,7 +55,7 @@ bool cull_frag( vec2 tc, vec3 epos, int depth_index )
 // Shader Implementation of the PVHV
 float relative_roc( float d, float df )
 {
-    // float	coc_norm_scale() const { float E=F/fn*0.5f; return E/df/tan(fovy*0.5f); } // normalized coc scale in the screen space; E: lens_radius
+        // float	coc_norm_scale() const { float E=F/fn*0.5f; return E/df/tan(fovy*0.5f); } // normalized coc scale in the screen space; E: lens_radius
         // float	coc_scale( int height ) const { return coc_norm_scale()*float(height)*0.5f; } // screen-space coc scale; so called "K" so far
 	// K0 = p_cam->coc_scale(output->height())*p_cam->df;
 	float K = K0/df;			// reconstruct K using dynamic df
