@@ -2,11 +2,9 @@
 
 interface PSIN { vec3 epos; vec3 wpos; vec3 normal; vec2 tex; flat uint draw_id; };	// struct not working for fragment shader
 
-// vertex shader uniforms
-uniform uint DrawID;	// for non-multidraw; see fixed-multi for multidraw
-
-// fragment shader uniforms
 uniform struct	camera_t { mat4 view_matrix,projection_matrix;float fovy,aspect,dnear,dfar;vec4 eye,center,up;float F,E,df,fn; } cam;
+
+uniform uint DrawID;	// for non-multidraw; see fixed-multi for multidraw
 
 layout (std430, binding=0, row_major) readonly buffer GEO { geometry geometries[]; };
 
