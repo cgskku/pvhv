@@ -2,6 +2,7 @@
 
 //*************************************
 //#define EXPAND_RROC		// further expansion of search bound; very low gain from this
+#define EPSILON		0.0005
 //*************************************
 
 uniform bool		b_edp_umbra;
