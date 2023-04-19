@@ -2,6 +2,8 @@
 
 interface PSIN { vec3 epos; vec3 wpos; vec3 normal; vec2 tex; flat uint draw_id; };
 
+uniform uint DrawID;	// for non-multidraw; see fixed-multi for multidraw
+
 uniform struct	camera_t { mat4 view_matrix,projection_matrix;float fovy,dnear,dfar,padding;} cam;
 
 uniform mat4 model_matrix;
