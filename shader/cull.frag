@@ -44,13 +44,6 @@ bool cull_umbra( vec3 epos, float zf )
 	return d < df+t;
 }
 
-bool cull_frag( vec2 tc, vec3 epos, int depth_index )
-{
-	float zf = texelFetch( SRC, ivec2(tc), 0 )[depth_index];
-	if(cull_simple(-epos.z,zf)) return true; if(model==DP_SIMPLE) return false;
-	return cull_umbra(epos,zf);
-}
-
 // Shader Implementation of the PVHV
 float relative_roc( float d, float df )
 {
