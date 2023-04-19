@@ -117,7 +117,7 @@ bool is_culled( vec2 tc, vec3 epos, int depth_index )
 
 void main()
 {
-	if(is_culled(gl_FragCoord.xy,pin.epos,2)) discard;
-	if(!phong(pout, pin.epos, pin.normal, pin.tex, pin.draw_id)) discard;
-	pout = encode_rgbzi( pin.epos, pout, pin.draw_id );
+	if(is_culled(gl_FragCoord.xy,vout.epos,2)) discard;
+	if(!phong(pout, vout.epos, vout.normal, vout.tex, vout.draw_id)) discard;
+	pout = encode_rgbzi( vout.epos, pout, vout.draw_id );
 }
