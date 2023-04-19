@@ -1,45 +1,46 @@
-# version 440
+#version 440
 
-//*************************************
-//#define EXPAND_RROC		// further expansion of search bound; very low gain from this
-#define EPSILON		0.0005
-//*************************************
+// important constants/macros
+//#define EXPAND_RROC	// further expansion of search bound; very low gain from this
+#define EDP_MAX_SAMPLES		64
+#define EPSILON				0.0005
 
+// input attributes from vertex shader
+in VOUT
+{
+	vec3 epos;
+	vec3 wpos;
+	vec3 normal;
+	vec2 tex;
+	flat uint draw_id;
+} vout;
+
+// output fragment color
+out vec4 pout;
+
+// uniform variables
 uniform bool		b_edp_umbra;
-uniform int		model;
-uniform int		layer_index;
+uniform int			model;
+uniform int			layer_index;
 uniform uint		edp_sample_count;
 uniform float		K0;
 uniform float		flat_thresh;
 uniform float		umbra_scale;
 uniform vec2		umbra;
+uniform sampler2D	SRC;	// previous layer
 
-uniform sampler2D	SRC;
-
-layout (std140, binding=10 ) uniform SAM { vec4 PD[EDP_MAX_SAMPLES]; }; // e.g. (-0.516538, 0.761920, 0,000000, 0.003906), (0.314958, -0.881136, 0.000000, 0.003922)
-
-out vec4 pout;
-in VOUT
+// uniform buffer for circular Poisson-disk/Halton samples in [-1,1]
+// xy is used only
+layout (std140, binding=10 ) uniform SAM
 {
-	vec3 epos; 
-	vec3 wpos; 
-	vec3 normal; 
-	vec2 tex; 
-	flat uint draw_id;
-} vout;
-
-// -----------------------------------------------------------------------------------------------
-
-bool cull_simple_thresh( float d, float zf, float thresh )
-{
-	if(zf==0||zf>0.999) return true; // previous layer was empty
-	if(d<mix(cam.dnear,cam.dfar,zf+thresh)) return true; // early reject
-	return false;
-}
+	vec4 PD[ EDP_MAX_SAMPLES ]; // EDP_MAX_SAMPLES
+};
 
 bool cull_simple( float d, float zf )
 {
-	return cull_simple_thresh( d, zf, EPSILON );
+	if(zf==0||zf>0.999) return true; // previous layer was empty
+	if(d<mix(cam.dnear,cam.dfar,zf+EPSILON)) return true; // early reject
+	return false;
 }
 
 bool cull_umbra( vec3 epos, float zf )
@@ -59,8 +60,8 @@ bool cull_umbra( vec3 epos, float zf )
 // Shader Implementation of the PVHV
 float relative_roc( float d, float df )
 {
-        // float coc_norm_scale() const { float E=F/fn*0.5f; return E/df/tan(fovy*0.5f); } // normalized coc scale in the screen space; E: lens_radius
-        // float coc_scale( int height ) const { return coc_norm_scale()*float(height)*0.5f; } // screen-space coc scale; so called "K" so far
+	// float coc_norm_scale() const { float E=F/fn*0.5f; return E/df/tan(fovy*0.5f); } // normalized coc scale in the screen space; E: lens_radius
+	// float coc_scale( int height ) const { return coc_norm_scale()*float(height)*0.5f; } // screen-space coc scale; so called "K" so far
 	// K0 = p_cam->coc_scale(output->height())*p_cam->df;
 	float K = K0/df;			// reconstruct K using dynamic df
 	float rroc = K*(d-df)/d;	// relative radius of COC against df (nearer object's depth)
@@ -103,8 +104,6 @@ bool edp_in_pvhv_lens( vec2 tc, vec3 epos, int depth_index ) // if frag is in pv
 	return false;
 }
 
-// -----------------------------------------------------------------------------------------------
-
 vec4 encode_rgbzi( vec3 epos, vec4 color, uint draw_id )
 {
 	return vec4(	uintBitsToFloat(packHalf2x16(color.rg)),
@@ -116,10 +115,10 @@ vec4 encode_rgbzi( vec3 epos, vec4 color, uint draw_id )
 bool is_culled( vec2 tc, vec3 epos, int depth_index )
 {
 	float zf = texelFetch( SRC, ivec2(tc), 0 )[depth_index];
-	if(model==BDP) return cull_simple(-epos.z,zf)
-	if(model==UDP) return cull_umbra(epos,zf)
-	if(model==EDP) return !edp_in_pvhv_lens(tc,epos,depth_index);
-}	
+	if(model==EDP)		return !edp_in_pvhv_lens(tc,epos,depth_index);
+	else if(model==BDP)	return cull_simple(-epos.z,zf)
+	else if(model==UDP)	return cull_umbra(epos,zf)
+}
 
 void main()
 {
