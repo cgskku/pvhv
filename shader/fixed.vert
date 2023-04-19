@@ -1,7 +1,5 @@
 # version 440
 
-interface PSIN { vec3 epos; vec3 wpos; vec3 normal; vec2 tex; flat uint draw_id; };
-
 uniform uint DrawID;	// for non-multidraw; see fixed-multi for multidraw
 
 uniform struct	camera_t { mat4 view_matrix,projection_matrix;float fovy,dnear,dfar,padding;} cam;
@@ -12,7 +10,14 @@ layout(location=0) in vec3 position;
 layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 
-out PSIN vout;
+out VOUT
+{
+	vec3 epos; 
+	vec3 wpos; 
+	vec3 normal; 
+	vec2 tex; 
+	flat uint draw_id;
+} vout;
 
 void main()
 {

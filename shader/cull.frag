@@ -19,7 +19,14 @@ uniform sampler2D	SRC;
 layout (std140, binding=10 ) uniform SAM { vec4 PD[EDP_MAX_SAMPLES]; };
 
 out vec4 pout;
-in PSIN pin;
+in VOUT
+{
+	vec3 epos; 
+	vec3 wpos; 
+	vec3 normal; 
+	vec2 tex; 
+	flat uint draw_id;
+} vout;
 
 bool cull_simple_thresh( float d, float zf, float thresh )
 {
