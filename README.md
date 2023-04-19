@@ -9,7 +9,7 @@ This repository contains the official shader implementation of Effective Depth P
 
 <p align="left">
   <a href="http://cg.skku.edu/pub/2023-kim-sig-pvhv">
-    <img width=85% src="./assets/2023-kim-sig-pvhv.jpg" />
+    <img width=85% src="./teaser.jpg" />
   </a>
 </p>
 
