@@ -28,6 +28,8 @@ in VOUT
 	flat uint draw_id;
 } vout;
 
+// -----------------------------------------------------------------------------------------------
+
 bool cull_simple_thresh( float d, float zf, float thresh )
 {
 	if(zf==0||zf>0.999) return true; // previous layer was empty
@@ -51,6 +53,8 @@ bool cull_umbra( vec3 epos, float zf )
 	float t  = (df-umbra.y)*s/(e+h-s);
 	return d < df+t;
 }
+
+// -----------------------------------------------------------------------------------------------
 
 // Shader Implementation of the PVHV
 float relative_roc( float d, float df )
@@ -98,6 +102,8 @@ bool edp_in_pvhv_lens( vec2 tc, vec3 epos, int depth_index ) // if frag is in pv
 
 	return false;
 }
+
+// -----------------------------------------------------------------------------------------------
 
 vec4 encode_rgbzi( vec3 epos, vec4 color, uint draw_id )
 {
