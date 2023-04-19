@@ -2,7 +2,6 @@
 
 //*************************************
 //#define EXPAND_RROC		// further expansion of search bound; very low gain from this
-#define BOUND_THRESH	1.0	// minimum bound size to the neighbors
 //*************************************
 
 uniform bool		b_edp_umbra;
@@ -99,11 +98,21 @@ bool edp_in_pvhv_lens( vec2 tc, vec3 epos, int depth_index ) // if frag is in pv
 	return false;
 }
 
+vec4 encode_rgbzi( vec3 epos, vec4 color, uint draw_id )
+{
+	return vec4(	uintBitsToFloat(packHalf2x16(color.rg)),
+					uintBitsToFloat(packHalf2x16(color.ba)),
+					(-epos.z-cam.dnear)/(cam.dfar-cam.dnear),		// linear depth in 32 bits
+					uintBitsToFloat(draw_id) );				// geometry ID (to find material ID and to generate motion later)
+}
+
 bool is_culled( vec2 tc, vec3 epos, int depth_index )
 {
-	if(model==EDP_LENS)			return !edp_in_pvhv_lens(tc,epos,depth_index);
-	return cull_frag(tc,epos,depth_index);
-}
+	float zf = texelFetch( SRC, ivec2(tc), 0 )[depth_index];
+	if(model==BDP) return cull_simple(-epos.z,zf)
+	if(model==UDP) return cull_umbra(epos,zf)
+	if(model==EDP) return !edp_in_pvhv_lens(tc,epos,depth_index);
+}	
 
 void main()
 {
