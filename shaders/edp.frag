@@ -12,11 +12,11 @@
 // input attributes from vertex shader
 in PIN
 {
-	vec3 epos;
-	vec3 wpos;
-	vec3 normal;
-	vec2 tex;
-	flat uint draw_id;
+	vec3 epos;			// eye-space position
+	vec3 wpos;			// world-space position
+	vec3 normal;		// eye-space normal
+	vec2 tex;			// texture coordinate
+	flat uint draw_id;	// object ID
 } pin;
 
 // output fragment color
@@ -39,8 +39,8 @@ layout(std140, binding=10) uniform SAM
 	vec4 PD[EDP_MAX_SAMPLES];
 };
 
-// Baseline Depth Peeling (BDP) [Everitt 2001]
-// Cass Everitt. Interactive order-independent transparency. NVIDIA.
+// BDP: Implementation of Baseline Depth Peeling [Everitt 2001]
+// Cass Everitt. Interactive order-independent transparency. NVIDIA 2001.
 // input: fragment depth, normalized blocker depth (in the previous layer)
 bool cull_bdp( float d, float zf )
 {
@@ -49,8 +49,8 @@ bool cull_bdp( float d, float zf )
 	return false;
 }
 
-// Umbra culling-based Depth Peeling (UDP) [Lee et al. 2010]
-// Real-Time Lens Blur Effects and Focus Control, ACM SIGGRAPH 2010.
+// UDP: Implementation of Umbra culling-based Depth Peeling [Lee et al. 2010]
+// Sungkil Lee, Elmar Eisemann, and Hans-Peter Seidel. Real-Time Lens Blur Effects and Focus Control, ACM SIGGRAPH 2010.
 // input: fragment eye-space position, normalized blocker depth (in the previous layer)
 bool cull_umbra( vec3 epos, float zf )
 {
@@ -66,7 +66,7 @@ bool cull_umbra( vec3 epos, float zf )
 float LCOC( float d, float df ) // fragment depth, blocker depth
 {
 	float K = float(height)*0.5f/df/tan(cam.fovy*0.5f); // screen-space LCOC scale
-	return lcoc = K*cam.E*abs(df-d)/d; // relative radius of COC against df (blocker depth)
+	return K*cam.E*abs(df-d)/d; // relative radius of COC against df (blocker depth)
 }
 
 // Algorithm 1. InPVHV()
@@ -77,7 +77,7 @@ bool InPVHV( vec2 tc, vec3 epos )
 	vec4 q		= texelFetch( SRC, ivec2(tc), 0 ); // blocker
 	uint q_item	= floatBitsToInt(q.w); if(q_item<0) return false; // bypass invalid blocker
 	
-	if(cull_bdp(d,q.z)) return false; // early test with BDP
+	if(cull_bdp(d,q.z)) return false; // early culling with BDP
 	if(layer_index>2) return !cull_umbra(epos,q.z); // hybrid DP: use UDP for h>2
 
 	float df = mix(cam.dnear, cam.dfar, q.z);
@@ -96,7 +96,7 @@ bool InPVHV( vec2 tc, vec3 epos )
 		// conservative approximation: Line 17 in Algorithm 1
 		else if( w.z<=q.z-edp_delta ) return true;	
 		// otherwise, the sample w is connected to blocker, requiring more tests
-		else continue; // for readability: this can be commented out in practice
+		else continue; // just for readability: this can be commented out in practice
 	}
 
 	return false;
@@ -116,7 +116,7 @@ void main()
 		else if(model==MODEL_UDP && cull_umbra( pin.epos, zf )) discard;
 	}
 
-	// apply shading
+	// apply shading (e.g., Phong shading)
 	if(!phong(pout, pin.epos, pin.normal, pin.tex, pin.draw_id)) discard;
 
 	// encode output in RGBZI (color, depth, item) format
