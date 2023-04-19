@@ -16,7 +16,7 @@ uniform vec2		umbra;
 
 uniform sampler2D	SRC;
 
-layout (std140, binding=10 ) uniform SAM { vec4 PD[EDP_MAX_SAMPLES]; };
+layout (std140, binding=10 ) uniform SAM { vec4 PD[EDP_MAX_SAMPLES]; }; // e.g. (-0.516538, 0.761920, 0,000000, 0.003906), (0.314958, -0.881136, 0.000000, 0.003922)
 
 out vec4 pout;
 in VOUT
