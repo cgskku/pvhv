@@ -16,10 +16,6 @@ This repository contains the official shader implementation of Effective Depth P
 ## Overview
 This paper presents the model and rendering algorithm of Potentially Visible Hidden Volumes (PVHVs) for multi-view image warping. PVHVs are 3D volumes that are occluded at a known source view, but potentially visible at novel views. Given a bound of novel views, we define PVHVs using the edges of foreground fragments from the known and the bound of novel views. PVHVs can be used to batch-test the visibilities of source fragments without iterating individual novel views in multi-fragment rendering, and thereby, cull redundant fragments prior to warping. We realize the model of PVHVs in Depth Peeling (DP). Our Effective Depth Peeling (EDP) can reduce the number of completely hidden fragments, capture important fragments early, and reduce warping cost. We demonstrate the benefit of our PVHVs and EDP in terms of memory, quality, and performance in multi-view warping.
 
-## Contact
-Open an issue for any inquiries.
-You may also have contact with [sungkil@skku.edu](mailto:sungkil@skku.edu)
-
 ## Citation
 If you find this code useful, please consider citing:
 
