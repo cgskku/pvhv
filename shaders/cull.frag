@@ -1,128 +1,127 @@
 #version 440
 
+// DP model indexes
+#define MODEL_BDP 	0
+#define MODEL_UDP 	1
+#define MODEL_EDP 	2
+
 // important constants/macros
-//#define EXPAND_RROC	// further expansion of search bound; very low gain from this
-#define EDP_MAX_SAMPLES		64
-#define EPSILON				0.0005
+#define EDP_MAX_SAMPLES		64		// maximum of backward-search samples in EDP
+#define BDP_EPSILON			0.0005
 
 // input attributes from vertex shader
-in VOUT
+in PIN
 {
 	vec3 epos;
 	vec3 wpos;
 	vec3 normal;
 	vec2 tex;
 	flat uint draw_id;
-} vout;
+} pin;
 
 // output fragment color
 out vec4 pout;
 
-// uniform variables
-uniform bool		b_edp_umbra;
-uniform int			model;
-uniform int			layer_index;
-uniform uint		edp_sample_count;
-uniform float		K0;
-uniform float		flat_thresh;
-uniform float		umbra_scale;
-uniform vec2		umbra;
-uniform sampler2D	SRC;	// previous layer
+// uniform texture
+uniform sampler2D	SRC;			// previous layer texture (encoded as RGBZI format)
 
-// uniform buffer for circular Poisson-disk/Halton samples in [-1,1]
-// xy is used only
-layout (std140, binding=10 ) uniform SAM
+// uniform variables
+uniform float	height;				// vertical screen resolution
+uniform int		model;				// index in { MODEL_BDP, MODEL_UDP, MODEL_EDP }
+uniform int		layer_index;		// h: index of the current layer
+uniform uint	edp_sample_count;	// number of backward-search samples in EDP (default: 14)
+uniform float	edp_delta;			// depth threshold for connectivity test (default: 0.002)
+
+// uniform buffers
+layout(std140, binding=10) uniform SAM
 {
-	vec4 PD[ EDP_MAX_SAMPLES ]; // EDP_MAX_SAMPLES
+	// circular Poisson-Disk (or Halton) samples in [-1,1]: using .xy only
+	vec4 PD[EDP_MAX_SAMPLES];
 };
 
-bool cull_simple( float d, float zf )
+// Baseline Depth Peeling (BDP) [Everitt 2001]
+// Cass Everitt. Interactive order-independent transparency. NVIDIA.
+// input: fragment depth, normalized blocker depth (in the previous layer)
+bool cull_bdp( float d, float zf )
 {
-	if(zf==0||zf>0.999) return true; // previous layer was empty
-	if(d<mix(cam.dnear,cam.dfar,zf+EPSILON)) return true; // early reject
+	if( zf==0 || zf>0.999 ) return true; // invalid/empty blocker
+	if( d < mix( cam.dnear, cam.dfar, zf+BDP_EPSILON )) return true;
 	return false;
 }
 
+// Umbra culling-based Depth Peeling (UDP) [Lee et al. 2010]
+// Real-Time Lens Blur Effects and Focus Control, ACM SIGGRAPH 2010.
+// input: fragment eye-space position, normalized blocker depth (in the previous layer)
 bool cull_umbra( vec3 epos, float zf )
 {
-	float d = -epos.z;
-	float df = mix(cam.dnear,cam.dfar,zf);
-	float h  = umbra.y*length(epos.xy)/df;	// never use xy.length(), which is just two
-	float e  = umbra.x;
-	float s  = tan(cam.fovy*0.5f)*2.0f*df/height*umbra_scale;
-	if(e+h<s) return true; // no more peeling, because the pixel geometry size > lens size
-	float t  = (df-umbra.y)*s/(e+h-s);
-	return d < df+t;
+	float d = -epos.z; // fragment depth
+	float df = mix( cam.dnear, cam.dfar, zf ); // blocker depth
+	float s  = tan( cam.fovy*0.5f )*2.0f*df/height; // pixel geometry size
+	if(cam.E<s) return true; // no more peeling, because the pixel geometry size > lens size
+	float x  = df*s/(cam.E-s);
+	return d < df+x;
 }
 
-// -----------------------------------------------------------------------------------------------
-
-// Shader Implementation of the PVHV
-float relative_roc( float d, float df )
+// Algorithm 1. LCOC()
+float LCOC( float d, float df ) // fragment depth, blocker depth
 {
-	// float coc_norm_scale() const { float E=F/fn*0.5f; return E/df/tan(fovy*0.5f); } // normalized coc scale in the screen space; E: lens_radius
-	// float coc_scale( int height ) const { return coc_norm_scale()*float(height)*0.5f; } // screen-space coc scale; so called "K" so far
-	// K0 = p_cam->coc_scale(output->height())*p_cam->df;
-	float K = K0/df;			// reconstruct K using dynamic df
-	float rroc = K*(d-df)/d;	// relative radius of COC against df (nearer object's depth)
-	return abs(rroc);
+	float K = float(height)*0.5f/df/tan(cam.fovy*0.5f); // screen-space LCOC scale
+	return lcoc = K*cam.E*abs(df-d)/d; // relative radius of COC against df (blocker depth)
 }
 
-bool edp_in_pvhv_lens( vec2 tc, vec3 epos, int depth_index ) // if frag is in pvhv, it returns true;
+// Algorithm 1. InPVHV()
+// input: texture coordinate, eye-space position of input fragment (i.e., p)
+bool InPVHV( vec2 tc, vec3 epos )
 {
-	float d = -epos.z;
-	vec4 P = texelFetch( SRC, ivec2(tc), 0 );
-	uint P_item = floatBitsToInt(P.w); if(P_item<0) return false;
-	float zf = P[depth_index];
-	if(cull_simple(d,zf)) return false;
-	if(b_edp_umbra&&layer_index>2) return !cull_umbra(epos,zf);
+	float d		= -epos.z; // fragment depth
+	vec4 q		= texelFetch( SRC, ivec2(tc), 0 ); // blocker
+	uint q_item	= floatBitsToInt(q.w); if(q_item<0) return false; // bypass invalid blocker
+	
+	if(cull_bdp(d,q.z)) return false; // early test with BDP
+	if(layer_index>2) return !cull_umbra(epos,q.z); // hybrid DP: use UDP for h>2
 
-	float df = mix(cam.dnear, cam.dfar, zf); 
-	float bound = relative_roc(d, df);
-
-	for( int k=0; k<edp_sample_count; k++ )
+	float df = mix(cam.dnear, cam.dfar, q.z);
+	float R = LCOC(d, df);
+	for( int k=0; k < edp_sample_count; k++ )
 	{
-		vec2 v = PD[k].xy*bound; 
-		vec2 tc_q = round(tc+v); 
-		vec4 Q = texelFetch(SRC, ivec2(tc_q), 0);
-		uint Q_item = floatBitsToInt(Q.w); if(Q_item<0) return false;
-		float zq = Q[depth_index]; if(zq==0) return true; if(zq>0.99f) continue;  
+		vec2 offset = PD[k].xy*R;	// sample offset
+		vec4 w = texelFetch(SRC, ivec2(round(tc+offset)), 0); // fetch sample
+		uint w_item = floatBitsToInt(w.w); if(w_item<0) return false;
+		if(w.z==0) return true;		// empty sample
+		if(w.z>0.99f) continue;		// background
 
-		// test whether sample is on the flat surface, or not
-		if( P_item != Q_item ) return true;
-		else if( zq >= zf + flat_thresh ) return true;
-		else if( zq <= zf - flat_thresh )
-		{
-#ifndef EXPAND_RROC		// simpler test
-		return true;
-#else
-		zf = zq; df = mix(cam.dnear, cam.dfar, zf); bound = relative_roc(d, df); 
-#endif
-		}
+		// Correspond to Algorithm 1. EdgeExists()
+		if( q_item != w_item ) return true;			// edge exists
+		else if( w.z>=q.z+edp_delta ) return true;	// edge exists
+		// conservative approximation: Line 17 in Algorithm 1
+		else if( w.z<=q.z-edp_delta ) return true;	
+		// otherwise, the sample w is connected to blocker, requiring more tests
+		else continue; // for readability: this can be commented out in practice
 	}
 
 	return false;
 }
 
-vec4 encode_rgbzi( vec3 epos, vec4 color, uint draw_id )
-{
-	return vec4(	uintBitsToFloat(packHalf2x16(color.rg)),
-					uintBitsToFloat(packHalf2x16(color.ba)),
-					(-epos.z-cam.dnear)/(cam.dfar-cam.dnear),		// linear depth in 32 bits
-					uintBitsToFloat(draw_id) );				// geometry ID (to find material ID and to generate motion later)
-}
-
-bool is_culled( vec2 tc, vec3 epos, int depth_index )
-{
-	float zf = texelFetch( SRC, ivec2(tc), 0 )[depth_index];
-	if(model==EDP)		return !edp_in_pvhv_lens(tc,epos,depth_index);
-	else if(model==BDP)	return cull_simple(-epos.z,zf)
-	else if(model==UDP)	return cull_umbra(epos,zf)
-}
-
 void main()
 {
-	if(is_culled(gl_FragCoord.xy,vout.epos,2)) discard;
-	if(!phong(pout, vout.epos, vout.normal, vout.tex, vout.draw_id)) discard;
-	pout = encode_rgbzi( vout.epos, pout, vout.draw_id );
+	// fragment culling
+	if(model==MODEL_EDP)
+	{
+		if(!InPVHV( tc, pin.epos )) discard;
+	}
+	else // BDP or UDP
+	{
+		float zf = texelFetch( SRC, ivec2(gl_FragCoord.xy), 0 ).z; // blocker depth
+		if(	model==MODEL_BDP && cull_bdp( -pin.epos.z, zf )) discard;
+		else if(model==MODEL_UDP && cull_umbra( pin.epos, zf )) discard;
+	}
+
+	// apply shading
+	if(!phong(pout, pin.epos, pin.normal, pin.tex, pin.draw_id)) discard;
+
+	// encode output in RGBZI (color, depth, item) format
+	pout.r = uintBitsToFloat(packHalf2x16(pout.rg));		// color.rg
+	pout.g = uintBitsToFloat(packHalf2x16(pout.ba));		// color.ba
+	pout.z = (-pin.epos.z-cam.dnear)/(cam.dfar-cam.dnear);	// normalized linear depth
+	pout.a = uintBitsToFloat(pin.draw_id);					// object ID
 }

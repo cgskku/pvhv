@@ -22,7 +22,8 @@ uniform struct	camera_t
 {
 	mat4	view_matrix;
 	mat4	projection_matrix;
-	float	fovy, dnear, dfar, padding; // dummy padding for 4-byte alignment
+	float	fovy, dnear, dfar;
+	float	E; // lens radius (i.e., sample bound in EDP)
 } cam;
 
 void main()
