@@ -1,14 +1,14 @@
-## Potentially Visible Hidden-Volume Rendering for Multi-View Warping (ACM SIGGRAPH 2023)<br><sub>Official GLSL Implementation</sub><br><sub>[Project](http://cg.skku.edu/pub/2023-kim-sig-pvhv) | [Paper](http://cg.skku.edu/pub/2023-kim-sig-pvhv)
+## Potentially Visible Hidden-Volume Rendering for Multi-View Warping (ACM SIGGRAPH 2023)<br><sub>Official GLSL Implementation</sub><br><sub>[Project](http://cg.skku.edu/pub/2023-kim-siggraph-pvhv) | [Paper](http://cg.skku.edu/pub/2023-kim-siggraph-pvhv)
 
 This repository contains the official shader implementation of Effective Depth Peeling used in the following paper:
 
-> [**Potentially Visible Hidden-Volume Rendering for Multi-View Warping**](http://cg.skku.edu/pub/2023-kim-sig-pvhv)<br>
+> [**Potentially Visible Hidden-Volume Rendering for Multi-View Warping**](http://cg.skku.edu/pub/2023-kim-siggraph-pvhv)<br>
 >[Janghun Kim](http://cg.skku.edu/ppl/)<sup>1</sup>, [Sungkil Lee](http://cg.skku.edu/slee/)<sup>1</sup><br>
 > <sup>1</sup>Sungkyunkwan University<br>
 > *ACM Transactions on Graphics **(Proc. SIGGRAPH**) 2023*<br>
 
 <p align="left">
-  <a href="http://cg.skku.edu/pub/2023-kim-sig-pvhv">
+  <a href="http://cg.skku.edu/pub/2023-kim-siggraph-pvhv">
     <img width=85% src="./teaser.jpg" />
   </a>
 </p>
